@@ -1,0 +1,178 @@
+#! /usr/bin/env ruby
+require 'pry' # External gem
+require 'trollop' # External gem
+
+require 'tempfile' # Ruby core
+require 'net/http' # Ruby core
+require 'rbconfig' # Ruby core
+
+require 'assumer' # This gem
+
+parsed_options = Trollop::options do
+  version "Assumer v#{Assumer::VERSION}"
+  banner 'Parameters:'
+  opt :target_account, 'Target AWS account to assume into', short: '-a', type: :string
+  opt :target_role, 'The role in the target account', short: '-r', type: :string
+  opt :control_account, 'Control Plane AWS account', short: '-A', type: :string
+  opt :control_role, 'The role in the control account', short: '-R', type: :string
+  banner 'These parameters are optional:'
+  opt :region, 'AWS region to operate in', default: 'us-east-1', type: :string
+  opt :username, 'Your IAM username', short: '-u', default: `whoami`.chomp, type: :string
+  opt :profile, 'Profile name from ~/.aws/credentials', short: '-o', type: :string
+  opt :gui, 'Open a web browser to the AWS console with these credentials'
+  opt :pry, 'Open a pry shell with these credentials', short: '-p'
+  opt :enable_aws_bundled_ca_cert, 'Option to enable the certificate store bundled with the AWS SDK'
+  opt :debug, 'Output debugging information'
+end
+
+DEBUG_FLAG = parsed_options[:debug]
+warn "Options understood to be the following:\n#{parsed_options}" if DEBUG_FLAG
+
+Trollop::die :target_account, 'Must be a 12-digit AWS account number' unless parsed_options[:target_account] =~ /\d{12}/
+Trollop::die :control_account, 'Must be a 12-digit AWS account number' unless parsed_options[:control_account] =~ /\d{12}/
+
+mfa_serial_number =   "arn:aws:iam::#{parsed_options[:control_account]}:mfa/#{parsed_options[:username]}"
+control_plane_role =  "arn:aws:iam::#{parsed_options[:control_account]}:role/#{parsed_options[:control_role]}"
+target_account_role = "arn:aws:iam::#{parsed_options[:target_account]}:role/#{parsed_options[:target_role]}"
+
+warn "MFA Serial Number:   #{mfa_serial_number}" if DEBUG_FLAG
+warn "Control Plane Role:  #{control_plane_role}" if DEBUG_FLAG
+warn "Target Account Role: #{target_account_role}" if DEBUG_FLAG
+
+Trollop::die :target_role, 'Invalid target role' unless target_account_role =~ %r{arn:aws:iam::\d{12}:role/[\w-]+?/[\w-]+}
+Trollop::die :control_rule, 'Invalid control role' unless control_plane_role =~ %r{arn:aws:iam::\d{12}:role/[\w-]+?/[\w-]+}
+
+puts <<EOF
+#{parsed_options[:username]} is assuming
+#{target_account_role}
+via
+#{control_plane_role}
+EOF
+
+# AWS SDK includes a certificate store that is disabled by default
+# This is to allow the system certificates to take precedent
+# If a system's CA store is botched, you can enable the bundled cert. store
+# https://github.com/aws/aws-sdk-core-ruby/issues/166#issuecomment-111603660
+if parsed_options[:enable_aws_bundled_ca_cert]
+  warn '>>> AWS bunled CA certificate enabled <<< ' if DEBUG_FLAG
+  Aws.use_bundled_cert!
+end
+
+def debug_credential_output(credentials:)
+"  Access Key Id: #{credentials.access_key_id[0..5]}...#{credentials.access_key_id[-4..-1]}
+  Secret Access Key: #{credentials.secret_access_key[0..5]}...#{credentials.secret_access_key[-4..-1]}
+  Session Token: #{credentials.session_token[0..5]}...#{credentials.session_token[-4..-1]}"
+end
+
+# First jump
+control_creds = Assumer::Assumer.new(
+  region: parsed_options[:region],
+  account: parsed_options[:control_account],
+  role: control_plane_role,
+  serial_number: mfa_serial_number,
+  profile: parsed_options[:profile]
+)
+if DEBUG_FLAG
+  warn 'First Jump Credentials:'
+  warn debug_credential_output(credentials: control_creds.assume_role_credentials.credentials)
+end
+
+# Second jump
+target_creds = Assumer::Assumer.new(
+  region: parsed_options[:region],
+  account: parsed_options[:target_account],
+  role: target_account_role,
+  credentials: control_creds
+)
+if DEBUG_FLAG
+  warn 'Second Jump Credentials:'
+  warn debug_credential_output(credentials: target_creds.assume_role_credentials.credentials)
+end
+
+region = parsed_options[:region]
+aws_access_key_id = target_creds.assume_role_credentials.credentials.access_key_id
+aws_secret_access_key = target_creds.assume_role_credentials.credentials.secret_access_key
+aws_session_token = target_creds.assume_role_credentials.credentials.session_token
+
+# Write to a file for the user to pull into their own shell if they'd like
+file = Tempfile.new('assumer')
+warn "Writing temp file #{file.path}" if DEBUG_FLAG
+# Prevents tempfile from being deleted when the Ruby object is garbage collected
+ObjectSpace.undefine_finalizer(file)
+
+# Write a different file depending on UNIX or Windows
+if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
+  output = <<-EOF.gsub(/^ {2}/, '')
+  set AWS_REGION=#{region}
+  set AWS_ACCESS_KEY_ID=#{aws_access_key_id}
+  set AWS_SECRET_ACCESS_KEY=#{aws_secret_access_key}
+  set AWS_SESSION_TOKEN=#{aws_session_token}
+  EOF
+  puts "To import these values into the shell, execute .\\'#{file.path}'\n"
+elsif RbConfig::CONFIG['host_os'] =~ /linux|bsd|darwin/
+  output = <<-EOF.gsub(/^ {2}/, '')
+  export AWS_REGION=#{region}
+  export AWS_ACCESS_KEY_ID=#{aws_access_key_id}
+  export AWS_SECRET_ACCESS_KEY=#{aws_secret_access_key}
+  export AWS_SESSION_TOKEN=#{aws_session_token}
+  EOF
+  puts "To import these values into the shell, source '#{file.path}'\n"
+end
+
+file.write(output)
+file.close
+warn "File '#{file.path}' closed" if DEBUG_FLAG
+
+# If GUI option was set, open default browser with creds into the account
+if parsed_options[:gui]
+  print "Generating signin URL to #{parsed_options[:target_account]}..."
+  issuer_url = 'assumer'
+  console_url = 'https://console.aws.amazon.com/'
+  signin_url = 'https://signin.aws.amazon.com/federation'
+  # Compose credential block used to request login token
+  session_json = {
+    sessionId: aws_access_key_id,
+    sessionKey: aws_secret_access_key,
+    sessionToken: aws_session_token
+  }.to_json
+
+  # Request signin token from Federation endpoint (valid for 15 minutes)
+  signin_token_url = <<-EOF.gsub(/^ {2}/, '')
+  #{signin_url}?Action=getSigninToken&SessionType=json&Session=#{CGI.escape(session_json)}
+  EOF
+  returned_content = Net::HTTP.get(URI.parse(signin_token_url))
+
+  # Extract the signin token from the information returned by the federation endpoint.
+  signin_token = JSON.parse(returned_content).fetch('SigninToken', {})
+
+  signin_token_param = "&SigninToken=#{CGI.escape(signin_token)}"
+
+  # Create the URL to give to the user, which includes the
+  # signin token and the URL of the console to open.
+  # The 'issuer' parameter is optional but recommended.
+  issuer_param = "&Issuer=#{CGI.escape(issuer_url)}"
+  destination_param = "&Destination=#{CGI.escape(console_url)}"
+  # Generate the signin URL, clean up the string
+  login_url = <<-EOF.gsub(/^ {2}/, '').chomp
+  #{signin_url}?Action=login#{signin_token_param}#{issuer_param}#{destination_param}
+  EOF
+  puts "Login URL is:\n#{login_url}"
+
+  # Depending on the system we are running on, use the appropriate
+  # system command to launch the default browser
+  if RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/
+    # On Windows, it matters what kind of quotes you use...
+    warn "System command is: 'start \"\" \"#{login_url}\"'" if DEBUG_FLAG
+    system "start \"\" \"#{login_url}\""
+  elsif RbConfig::CONFIG['host_os'] =~ /darwin/
+    warn 'System command is: ' + "open '#{login_url}'" if DEBUG_FLAG
+    system "open '#{login_url}'"
+  elsif RbConfig::CONFIG['host_os'] =~ /linux|bsd/
+    warn 'System command is: ' + "xdg-open '#{login_url}'" if DEBUG_FLAG
+    system "xdg-open '#{login_url}'"
+  end
+# If a pry shell was requested, deliver one with credentials available
+elsif parsed_options[:pry]
+  puts "Your Assumer object within pry is 'target_creds'"
+  binding.pry(quiet: true)
+end
