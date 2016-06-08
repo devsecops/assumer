@@ -3,6 +3,8 @@ require 'aws-sdk-core'
 require 'mfa'
 
 module Assumer
+  # The regex that AWS uses to verify if a role's ARN is valid
+  AWS_ROLE_REGEX = %r{arn:aws:iam::\d{12}:role/?[a-zA-Z_0-9+=,.@\-_/]+}
   class AssumerError < StandardError; end
   # This class provides the main functionallity to the Assumer gem
 
@@ -48,6 +50,17 @@ module Assumer
       raise AssumerError, "Access Denied: #{e.message}"
     end
 
+    ##
+    # Verifies the requested role is valid
+    # Only checks syntax, does not guarantee the role exists or can be assumed into
+    # @param [String] role The ARN of the role to be verified
+    # @return [String] The ARN of a valid role
+    # @raise [AssumerError] If the ARN is invalid, an exception is raised
+    def verify_role(role:)
+      raise AssumerError, "Invalid ARN for role #{role}" if role =~ AWS_ROLE_REGEX
+      role
+    end
+
     private
 
     ##
@@ -71,17 +84,6 @@ module Assumer
       # Or anywhere AWS STS Client knows where to load them from
       opts[:profile] = credentials_profile unless credentials_profile.nil?
       @sts_client = Aws::STS::Client.new(opts)
-    end
-
-    ##
-    # Verifies the requested role is valid
-    # Only checks syntax, does not guarantee the role exists or can be assumed into
-    # @param [String] role The ARN of the role to be verified
-    # @return [String] The ARN of a valid role
-    # @raise [AssumerError] If the ARN is invalid, an exception is raised
-    def verify_role(role:)
-      raise AssumerError, "Invalid ARN for role #{role}" if (role =~ %r{arn:aws:iam::[0-9]{12}:role/[\w-]+?/[\w-]+}).nil?
-      role
     end
 
     ##
