@@ -17,7 +17,7 @@ Assumer requires a Ruby version >= 2.1
   * `cd assumer`
 1. Change directory into the `source` folder, where the gem's source code lives
   * `cd source`
-1. Build and install the gem
+1. Build the gem
   * `gem build assumer.gemspec`
 1. Install the gem
   * `gem install assumer-0.4.0.gem`
@@ -31,17 +31,17 @@ You can use the gem on the command line.  For an in-depth explanation of options
 To see help text:
   * `assumer -h` To see help text
 
-Standard syntax:
-  * `assumer -a 123456789012 -r "target/role-name" -A 987654321098 -R 'control/role-name' `
+Standard usage:
+  * `assumer -a 123456789012 -r "target/role-name" -A 987654321098 -R "control/role-name" `
 
 To request a console, pass the `-g` flag:
-  * `assumer -a 123456789012 -r target_role/target_path -A 987654321098 -R control_role/control_path -g`
+  * `assumer -a 123456789012 -r "target_role/target_path" -A 987654321098 -R "control_role/control_path" -g`
 
 To request a pry console, pass the `-p` flag:
-  * `assumer -a 123456789012 -r target_role/target_path -A 987654321098 -R control_role/control_path -p`
+  * `assumer -a 123456789012 -r "target_role/target_path" -A 987654321098 -R "control_role/control_path" -p`
 
 Why not both?
-  * `assumer -a 123456789012 -r target_role/target_path -A 987654321098 -R control_role/control_path -p -g`
+  * `assumer -a 123456789012 -r "target_role/target_path" -A 987654321098 -R "control_role/control_path" -p -g`
 
 Or use the gem in your code:
 ```ruby
