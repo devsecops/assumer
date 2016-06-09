@@ -27,12 +27,19 @@ Assumer requires a Ruby version >= 2.1
 **Having trouble running Assumer on Windows?  Please see our [document](/docs/Windows.md) with some troubleshooting steps.**
 
 You can use the gem on the command line.  For an in-depth explanation of options, see [this file](/docs/Options.md); what follows is a simplistic overview.
+
+To see help text:
   * `assumer -h` To see help text
+
+Standard syntax:
   * `assumer -a 123456789012 -r "target/role-name" -A 987654321098 -R 'control/role-name' `
-To request a console, pass the `-g` flag
+
+To request a console, pass the `-g` flag:
   * `assumer -a 123456789012 -r target_role/target_path -A 987654321098 -R control_role/control_path -g`
-To request a pry console, pass the `-p` flag
+
+To request a pry console, pass the `-p` flag:
   * `assumer -a 123456789012 -r target_role/target_path -A 987654321098 -R control_role/control_path -p`
+
 Why not both?
   * `assumer -a 123456789012 -r target_role/target_path -A 987654321098 -R control_role/control_path -p -g`
 
