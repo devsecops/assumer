@@ -28,10 +28,11 @@ module Assumer
       @role = verify_role(role: role)
       # If we are being passed credentials, it's an Assumer instance, and we can
       # get the creds from it.  Otherwise, establish an STS connection
-      @sts_client = establish_sts(region: @region,
-                                  passed_credentials: credentials,
-                                  credentials_profile: profile
-                                 )
+      @sts_client = establish_sts(
+        region: @region,
+        passed_credentials: credentials,
+        credentials_profile: profile
+      )
       @serial_number = serial_number # ARN for the user's MFA serial number
 
       opts = {
@@ -57,7 +58,7 @@ module Assumer
     # @return [String] The ARN of a valid role
     # @raise [AssumerError] If the ARN is invalid, an exception is raised
     def verify_role(role:)
-      raise AssumerError, "Invalid ARN for role #{role}" if role =~ AWS_ROLE_REGEX
+      raise AssumerError, "Invalid ARN for role #{role}" unless role =~ AWS_ROLE_REGEX
       role
     end
 

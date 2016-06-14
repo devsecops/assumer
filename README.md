@@ -10,6 +10,8 @@ Assumer will assume-role on a target account and generate temporary API keys for
 
 Assumer requires a Ruby version >= 2.1
 
+Install with `gem install assumer`
+
 ### Build from Source ###
 
 1. Clone the repository
@@ -20,7 +22,7 @@ Assumer requires a Ruby version >= 2.1
 1. Build and install the gem
   * `gem build assumer.gemspec`
 1. Install the gem
-  * `gem install assumer-0.4.0.gem`
+  * `gem install assumer-0.4.1.gem`
 
 ## Usage ##
 
