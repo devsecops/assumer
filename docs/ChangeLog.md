@@ -1,5 +1,9 @@
 # Assumer Change Log #
 
+## Version 0.4.1 ##
+
+* Brought the role validation regex in-line with the one used by Amazon.
+
 ## Version 0.4.0 ##
 
 * First public release

@@ -39,9 +39,6 @@ warn "MFA Serial Number:   #{mfa_serial_number}" if DEBUG_FLAG
 warn "Control Plane Role:  #{control_plane_role}" if DEBUG_FLAG
 warn "Target Account Role: #{target_account_role}" if DEBUG_FLAG
 
-Trollop::die :target_role, 'Invalid target role' unless target_account_role =~ %r{arn:aws:iam::\d{12}:role/[\w-]+?/[\w-]+}
-Trollop::die :control_rule, 'Invalid control role' unless control_plane_role =~ %r{arn:aws:iam::\d{12}:role/[\w-]+?/[\w-]+}
-
 puts <<EOF
 #{parsed_options[:username]} is assuming
 #{target_account_role}
