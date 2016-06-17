@@ -166,7 +166,7 @@ if parsed_options[:gui]
     system "open '#{login_url}'"
   elsif RbConfig::CONFIG['host_os'] =~ /linux|bsd/
     warn 'System command is: ' + "xdg-open '#{login_url}'" if DEBUG_FLAG
-    system "xdg-open '#{login_url}'"
+    system "xdg-open '#{login_url}' > /dev/null 2>&1" 
   end
 # If a pry shell was requested, deliver one with credentials available
 elsif parsed_options[:pry]
