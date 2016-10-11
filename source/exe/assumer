@@ -71,7 +71,7 @@ begin
     profile: parsed_options[:profile]
   )
 rescue Assumer::AssumerError => e
-  puts e.message
+  puts "Error in first jump: #{e.message}"
   puts "#{e.cause.class}: #{e.cause}" if DEBUG_FLAG
   puts e.backtrace if DEBUG_FLAG
   exit -1
@@ -91,7 +91,7 @@ begin
     credentials: control_creds
   )
 rescue Assumer::AssumerError => e
-  puts e.message
+  puts "Error in second jump: #{e.message}"
   puts "#{e.cause.class}: #{e.cause}" if DEBUG_FLAG
   puts e.backtrace if DEBUG_FLAG
   exit -1
