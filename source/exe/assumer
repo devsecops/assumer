@@ -62,25 +62,41 @@ def debug_credential_output(credentials:)
 end
 
 # First jump
-control_creds = Assumer::Assumer.new(
-  region: parsed_options[:region],
-  account: parsed_options[:control_account],
-  role: control_plane_role,
-  serial_number: mfa_serial_number,
-  profile: parsed_options[:profile]
-)
+begin
+  control_creds = Assumer::Assumer.new(
+    region: parsed_options[:region],
+    account: parsed_options[:control_account],
+    role: control_plane_role,
+    serial_number: mfa_serial_number,
+    profile: parsed_options[:profile]
+  )
+rescue Assumer::AssumerError => e
+  puts e.message
+  puts "#{e.cause.class}: #{e.cause}" if DEBUG_FLAG
+  puts e.backtrace if DEBUG_FLAG
+  exit -1
+end
+
 if DEBUG_FLAG
   warn 'First Jump Credentials:'
   warn debug_credential_output(credentials: control_creds.assume_role_credentials.credentials)
 end
 
 # Second jump
-target_creds = Assumer::Assumer.new(
-  region: parsed_options[:region],
-  account: parsed_options[:target_account],
-  role: target_account_role,
-  credentials: control_creds
-)
+begin
+  target_creds = Assumer::Assumer.new(
+    region: parsed_options[:region],
+    account: parsed_options[:target_account],
+    role: target_account_role,
+    credentials: control_creds
+  )
+rescue Assumer::AssumerError => e
+  puts e.message
+  puts "#{e.cause.class}: #{e.cause}" if DEBUG_FLAG
+  puts e.backtrace if DEBUG_FLAG
+  exit -1
+end
+
 if DEBUG_FLAG
   warn 'Second Jump Credentials:'
   warn debug_credential_output(credentials: target_creds.assume_role_credentials.credentials)
