@@ -1,5 +1,11 @@
 # Assumer Change Log #
 
+## Version 0.4.2 ##
+
+* Better error handling all around.  `assumer` is less likely to dump a backtrace out when something happens and instead return just the message
+* Using `^C` to stop execution at the MFA prompt doesn't dump a backtrace out, the gem exits cleanly
+
+
 ## Version 0.4.1 ##
 
 * Brought the role validation regex in-line with the one used by Amazon.
