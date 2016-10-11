@@ -6,7 +6,7 @@ This document is an in-depth explanation of the various options (or flags) that 
 
 The `assumer` gem includes an executable Ruby script that automates the process of double-jumping and assuming a role within a target account.  This script can optionally use those temporary credentials to open a web browser so that the AWS Console can be accessed, drop into a Pry shell, or both.
 
-As of Assumer v0.4.0, the flags available are:
+As of Assumer v0.4.2, the flags available are:
 ```
 $ assumer -h
 Parameters:

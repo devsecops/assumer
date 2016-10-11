@@ -22,7 +22,7 @@ Install with `gem install assumer`
 1. Build the gem
   * `gem build assumer.gemspec`
 1. Install the gem
-  * `gem install assumer-0.4.1.gem`
+  * `gem install assumer-0.4.2.gem`
 
 ## Usage ##
 
