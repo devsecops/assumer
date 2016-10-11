@@ -15,7 +15,7 @@ module Assumer
       end
       @otp # return the MFA code
     rescue SystemExit, Interrupt
-      exit 0
+      exit -1
     end
   end
 end
