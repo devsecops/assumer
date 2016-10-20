@@ -13,7 +13,9 @@ module Assumer
         @otp = $stdin.gets(7).chomp
         $stderr.puts 'MFA code should be 6 digits' if @otp !~ /\d{6}/
       end
-      @otp
+      @otp # return the MFA code
+    rescue SystemExit, Interrupt
+      exit -1
     end
   end
 end
