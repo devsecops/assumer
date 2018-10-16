@@ -23,9 +23,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake', '~> 10.0'
   # Requires Ruby 2.1 or higher; 2.0 is buggy
   spec.required_ruby_version = '>= 2.1'
-  # There is a race condition in the aws-sdk-core gem 2.1.0.
-  # This constraint says 2.1.1 and up, but don't go to 2.2
-  spec.add_dependency 'aws-sdk-core', '~> 2.1', '>= 2.1.1'
+  spec.add_dependency 'aws-sdk-core', '~> 3'
   spec.add_dependency 'pry', '~>0'
   spec.add_dependency 'trollop', '2.1.2'
 end
